@@ -1,0 +1,13 @@
+train: MachineLearning_Python/yolo_v7/ds_hard_hat/train/images
+val: MachineLearning_Python/yolo_v7/ds_hard_hat/valid/images
+test: MachineLearning_Python/yolo_v7/ds_hard_hat/test/images
+
+nc: 3
+names: ['head', 'helmet', 'person']
+
+roboflow:
+  workspace: matthias-e3k7w
+  project: hard-hat-sample-wctvk
+  version: 4
+  license: Public Domain
+  url: https://app.roboflow.com/matthias-e3k7w/hard-hat-sample-wctvk/4
