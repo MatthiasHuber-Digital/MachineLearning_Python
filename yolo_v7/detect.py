@@ -170,16 +170,19 @@ if __name__ == '__main__':
     old_stdout = sys.stdout
 
     time_and_date = str(datetime.datetime.now())
-    log_file_name = "prediction_yolov7_" + time_and_date + ".log"
+    log_file_name = "MachineLearning_Python/yolo_v7/runs/detect/prediction_yolov7_" + time_and_date + ".log"
     log_file = open(log_file_name,"w")
 
     sys.stdout = log_file
+
+    device = 'cuda:0' if torch.cuda.is_available else 'cpu'
 
     print("\n+++")
     print("\nBeginning yolov7 prediction...")
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='/home/matthias/workspace/Coding/ML_gh_repo_personal/runs/train/exp/weights/best.pt', help='model.pt path(s)')
     parser.add_argument('--conf', type=float, default=0.1, help='confidence score')
+    parser.add_argument('--device', type=str, default=device, help='computation device')
     #parser.add_argument('--source', type=str, default='inference/images', help='confidence score')
     parser.add_argument('--source', type=str, default='MachineLearning_Python/yolo_v7/ds_hard_hat/test/images', help='confidence score')
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')

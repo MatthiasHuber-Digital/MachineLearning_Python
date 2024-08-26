@@ -673,15 +673,18 @@ if __name__ == '__main__':
     old_stdout = sys.stdout
 
     time_and_date = str(datetime.datetime.now())
-    log_file_name = "training_yolov7_" + time_and_date + ".log"
+    log_file_name = "MachineLearning_Python/yolo_v7/runs/train/training_yolov7_" + time_and_date + ".log"
     log_file = open(log_file_name,"w")
 
     sys.stdout = log_file
 
+    device = 'cuda:0' if torch.cuda.is_available else 'cpu'
+
     parser = argparse.ArgumentParser()
     # parser.add_argument('--weights', type=str, default='yolo7.pt', help='initial weights path')
-    parser.add_argument('--weights', type=str, default='MachineLearning_Python/yolo_v7/yolov7_training.pt', help='initial weights path')
+    parser.add_argument('--weights', type=str, default='MachineLearning_Python/yolo_v7/weights_pretrained_models/yolov7_w6_pretrained_COCO.pt', help='initial weights path')
     parser.add_argument('--cfg', type=str, default='', help='model.yaml path')
+    parser.add_argument('--device', type=str, default=device, help='computation device')
     # parser.add_argument('--data', type=str, default='data/coco.yaml', help='data.yaml path')
     parser.add_argument('--data', type=str, default='ds_hard_hat/data.yaml', help='data.yaml path')
     parser.add_argument('--hyp', type=str, default='data/hyp.scratch.p5.yaml', help='hyperparameters path')
@@ -721,13 +724,6 @@ if __name__ == '__main__':
     parser.add_argument('--v5-metric', action='store_true', help='assume maximum recall as 1.0 in AP calculation')
     opt = parser.parse_args()
     
-    '''
-    opt['batch'] = 128
-    opt['epochs'] = 1
-    opt['data'] = 'ds_hard_hat/data.yaml'
-    opt['weights'] = 'yolov7_training.pt'
-    '''
-
     kick_off_training(opt)
 
     sys.stdout = old_stdout
