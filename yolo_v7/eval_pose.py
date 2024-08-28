@@ -1,6 +1,8 @@
+import argparse
 import cv2
 import matplotlib.pyplot as plt
 import os
+import pathlib
 import torch
 from torchvision import transforms
 
@@ -13,100 +15,129 @@ from utils.general import non_max_suppression_kpt, xywh2xyxy
 from utils.plots import output_to_keypoint, plot_skeleton_kpts, plot_one_box
 
 
-# read original image
-orig_img = cv2.imread('inference/images/image1.jpg')
-orig_img = cv2.cvtColor(orig_img, cv2.COLOR_BGR2RGB)
-original_shape = orig_img.shape
-print('Original image shape: ', original_shape)
-cv2.imwrite("original_test_image.jpg", orig_img)
+def split_off_file_extension(file_path: str) -> tuple:
+    """This function splits off the file extension off an entire file path.
 
-# resize image without padding
-img = cv2.resize(orig_img, (640, 640), interpolation=cv2.INTER_LINEAR)
-print('Resized image', img.shape)
-cv2.imwrite("reshaped_test_image.jpg", img)
+    Args:
+        file_path (str): The file path including the file extension.
 
-#print('Anchors:', model.yaml['anchors'])
-image_tensor = transforms.ToTensor()(img)
-image_tensor = torch.unsqueeze(image_tensor, 0)
-#print('Transformed to tensor image:', image_tensor.shape)
-image_tensor = image_tensor.to(device).float()
-with torch.no_grad():
-    pred, _ = model(image_tensor)
-print('Predictions shape:', pred.shape)
+    Returns:
+        file_path_no_extension (str): The file path without the LAST file extension.
+        file_extension (str): The LAST file extension as separate string.
+    """
+    list_pieces = file_path.split('.')
+    file_extension = list_pieces[-1]
+    file_path_no_extension = '.'.join(list_pieces[:-1])
 
-predicted_keypoints = non_max_suppression_kpt(pred, 
-                               conf_thres=0.25, 
-                               iou_thres=0.65, 
-                               nc=model.yaml['nc'], 
-                               nkpt=model.yaml['nkpt'], 
-                               kpt_label=True)
-print('Detected poses:', len(predicted_keypoints))
-print('Prediction shape:', predicted_keypoints[0].shape)
+    return file_path_no_extension, file_extension
 
 
-predicted_keypoints = output_to_keypoint(predicted_keypoints)
+def load_dataset(
+    path_dataset: str,
+    image_file_extension: str = 'jpg',
+) -> list:
+    """This function returns a list of tuples which contain
+    both image data and image path.
 
-def plot_pose_prediction(
-        img: cv2.Mat,
-        pred: list, 
-        line_thickness: int = 2, 
-        show_bbox: bool = False,
-    ) -> cv2.Mat:
-    bbox = xywh2xyxy(pred[:,2:6])
-    for idx in range(pred.shape[0]):
-        plot_skeleton_kpts(img, pred[idx, 7:].T, 3)
-        if show_bbox:
-            plot_one_box(bbox[idx], img, line_thickness=line_thickness)
+    Args:
+        path_dataset (str): The dataset folder path.
+        image_file_extension (str): File extension of the image files to work on.
+    Returns:
+        list_images_and_paths (list): List of tuples of image data and path of images.
+    """
+    list_image_paths = list(pathlib.Path(path_dataset).glob('*.' + image_file_extension))
+    list_image_paths = [str(path) for path in list_image_paths]
+    
+    list_images = [None] * len(list_image_paths)
+    for idx, path in enumerate(list_image_paths):
+        list_images[idx] = cv2.imread(path)
 
-plot_pose_prediction(img, predicted_keypoints)
-cv2.imwrite("detections_test_image.jpg", img)
+    list_images_and_paths = list(zip(list_images, list_image_paths))
 
-scaled_predicted_keypoints = scale_pose_output(
-    scaled_keypt_output=predicted_keypoints,
-    original_shape=original_shape,
-    resized_shape=(640, 640),
-    is_padded=False,
-)
-plot_pose_prediction(orig_img, scaled_predicted_keypoints)
-cv2.imwrite("detections_test_image.jpg", orig_img)
+    return list_images_and_paths
 
-#add_pose_in_video_file('board.mp4', 'board_out.mp4')
 
 def pose_prediction_single_image(
-        image: cv2.Mat
+    orig_img: cv2.Mat,
+    img_path_wo_ext: str,
+    img_ext: str,
+    device: torch.device,
+    model,
 ):
+    """This function conducts a pose prediction on a single image, inlcuding saving the image files.
+
+    Args:
+        orig_img (cv2.Mat): Opencv-data of the original image.
+        img_path_wo_ext (str): Path of the original image without file extension.
+        img_ext (str): Image file extension.
+        model (_type_): Prediction model (yolo v7).
+    """
+    img = cv2.cvtColor(orig_img, cv2.COLOR_BGR2RGB)
+    img = cv2.resize(img, (640, 640), interpolation=cv2.INTER_LINEAR)
+    cv2.imwrite(img_path_wo_ext + '_postproc.' + img_ext, img)
+
+    image_tensor = transforms.ToTensor()(img)
+    image_tensor = torch.unsqueeze(image_tensor, 0)
+    image_tensor = image_tensor.to(device).float()
+
+    with torch.no_grad():
+        pred, _ = model(image_tensor)
+
+    predicted_keypoints = non_max_suppression_kpt(pred, 
+                                conf_thres=0.25, 
+                                iou_thres=0.65, 
+                                nc=model.yaml['nc'], 
+                                nkpt=model.yaml['nkpt'], 
+                                kpt_label=True)
+
+    predicted_keypoints = output_to_keypoint(predicted_keypoints)
+
     plot_pose_prediction(img, predicted_keypoints)
-    cv2.imwrite("detections_test_image.jpg", img)
+    
+    cv2.imwrite(img_path_wo_ext + '_scaled_with_poses.' + img_ext, img)
 
     scaled_predicted_keypoints = scale_pose_output(
         scaled_keypt_output=predicted_keypoints,
-        original_shape=original_shape,
-        resized_shape=(640, 640), # natural shape for yolov7 images
+        original_shape=orig_img.shape,
+        resized_shape=(640, 640),
         is_padded=False,
     )
     plot_pose_prediction(orig_img, scaled_predicted_keypoints)
-    cv2.imwrite("detections_test_image.jpg", orig_img)
+    cv2.imwrite(img_path_wo_ext + '_orig_scale_with_poses.' + img_ext, orig_img)
 
 
-def pose_prediction_dataset(opt: dict):
-        
-    os.chdir('MachineLearning_Python/yolo_v7')
+def pose_prediction_dataset(
+    path_dataset: str,
+    path_model: str,
+    path_workdir: str = None,
+):
+    """This function predicts the poses for all images in a dataset.
+
+    Args:
+        path_dataset (str): Path of the dataset folder.
+        path_model (str): Path to the model including weights (yolov7 with pose prediction).
+        path_workdir (str): Path to the workdir to which to switch to before executing the funciton.
+    """
+    if path_workdir is not None:
+        os.chdir(path_workdir)
+    
+    list_images_and_paths = load_dataset(path_dataset=path_dataset, image_file_extension='jpg')
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print('Device:', device)
 
-    model = attempt_load('weights_pretrained_models/yolov7_w6_pretrained_pose.pt', map_location=device)
+    model = attempt_load(path_model, map_location=device)
     model.eval()
 
-    print('Number of classes:', model.yaml['nc'])
-    print('Number of keypoints:', model.yaml['nkpt'])
+    for img_data, img_path in list_images_and_paths:
+        path_wo_ext, ext = split_off_file_extension(file_path=img_path)
 
-
-    for image in list_images:
         pose_prediction_single_image(
-            image=preprocessed_image,
+            orig_img=img_data,
+            img_path_wo_ext=path_wo_ext,
+            img_ext=ext,
+            device=device,
+            model=model,
         )
-
 
 
 if __name__ == '__main__':
@@ -116,21 +147,21 @@ if __name__ == '__main__':
     old_stdout = sys.stdout
 
     time_and_date = str(datetime.datetime.now())
-    log_file_name = "MachineLearning_Python/yolo_v7/runs/train/training_yolov7_" + time_and_date + ".log"
+    log_file_name = "MachineLearning_Python/yolo_v7/runs/detect/training_yolov7_" + time_and_date + ".log"
     log_file = open(log_file_name,"w")
 
     sys.stdout = log_file
 
-    device = 'cuda:0' if torch.cuda.is_available else 'cpu'
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='MachineLearning_Python/yolo_v7/weights_pretrained_models/yolov7_w6_pretrained_COCO.pt', help='initial weights path')
-    parser.add_argument('--device', type=str, default=device, help='computation device')
-    parser.add_argument('--data', type=str, default='ds_hard_hat/data.yaml', help='data.yaml path')
-    parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
+    parser.add_argument('--weights', type=str, default='weights_pretrained_models/yolov7_w6_pretrained_pose.pt', help='initial weights path')
+    parser.add_argument('--data', type=str, default='ds_hard_hat/test/images', help='path to the folder containing the images which to make the pose prediction for')
+
     opt = parser.parse_args()
     
-    pose_prediction_dataset(opt)
+    pose_prediction_dataset(
+        path_dataset=opt.data, 
+        path_model=opt.weights,
+        path_workdir='MachineLearning_Python/yolo_v7')
 
     sys.stdout = old_stdout
 
