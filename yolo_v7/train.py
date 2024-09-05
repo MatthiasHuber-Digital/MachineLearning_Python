@@ -720,13 +720,6 @@ if __name__ == '__main__':
     parser.add_argument('--freeze', nargs='+', type=int, default=[0], help='Freeze layers: backbone of yolov7=50, first3=0 1 2')
     parser.add_argument('--v5-metric', action='store_true', help='assume maximum recall as 1.0 in AP calculation')
     opt = parser.parse_args()
-    
-    '''
-    opt['batch'] = 128
-    opt['epochs'] = 1
-    opt['data'] = 'ds_hard_hat/data.yaml'
-    opt['weights'] = 'yolov7_training.pt'
-    '''
 
     kick_off_training(opt)
 
