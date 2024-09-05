@@ -1,10 +1,9 @@
 """
-Given train and test datasets, fit a model to the training data. Choose the most suitable 
-model and loss function by yourself. You are allowed to use numpy, scipy.optimize and torch 
-only. You can use method Dataset.plot to visualize a dataset. 
-Train dataset: https://drive.google.com/file/d/1hyp4EvWKsz2TLQJSnedktqOTHowhMxw7 
-Test dataset: https://drive.google.com/file/d/1_NpRRQ4nBe1VxsCJqSJT6rCZ8_dj6L8a 
-To solve the problem, fill the following code in:"""
+fit a model to the training data.
+You are allowed to use numpy, scipy.optimize and torch 
+only.
+"""
+
 
 from __future__ import annotations
 from pathlib import Path
@@ -72,24 +71,6 @@ class CustomDataset(Dataset):
 
     def __len__(self) -> int:
         return self.target.shape[0]
-
-
-"""
-def fit_three_peaks(train_dataset: Dataset) -> Model:
-
-    ##########################
-    ### PUT YOUR CODE HERE ###
-    ##########################
-
-    return ...
-
-class ModelWrapper(Protocol, MyModel):
-    def __init(self):
-        super(ModelWrapper, self).__init__()
-    
-    def predict(self, x: NDArrayFloat, y: NDArrayFloat) -> NDArrayFloat:
-        pass
-"""
 
 class MyModel(nn.Module):
     def __init__(self):

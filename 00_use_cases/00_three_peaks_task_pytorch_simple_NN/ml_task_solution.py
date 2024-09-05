@@ -1,10 +1,9 @@
 """
-Given train and test datasets, fit a model to the training data. Choose the most suitable 
-model and loss function by yourself. You are allowed to use numpy, scipy.optimize and torch 
-only. You can use method Dataset.plot to visualize a dataset. 
-Train dataset: https://drive.google.com/file/d/1hyp4EvWKsz2TLQJSnedktqOTHowhMxw7 
-Test dataset: https://drive.google.com/file/d/1_NpRRQ4nBe1VxsCJqSJT6rCZ8_dj6L8a 
-To solve the problem, fill the following code in:"""
+fit a model to the training data.
+You are allowed to use numpy, scipy.optimize and torch 
+only.
+"""
+
 
 from __future__ import annotations
 from pathlib import Path
